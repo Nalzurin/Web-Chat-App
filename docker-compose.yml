@@ -1,0 +1,37 @@
+name: chatapp
+
+services:
+
+  postgres:
+    image: postgres:latest
+    container_name: chatapp-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: chatuser
+      POSTGRES_PASSWORD: chatpassword
+      POSTGRES_DB: chatdb
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/
+  
+  pgadmin4:
+      image: elestio/pgadmin:latest
+      restart: always
+      environment:
+        PGADMIN_DEFAULT_EMAIL: admin@admin.com
+        PGADMIN_DEFAULT_PASSWORD: admin
+        PGADMIN_LISTEN_PORT: 5143
+      ports:
+        - "5143:5143"
+      volumes:
+        - ./servers.json:/pgadmin4/servers.json
+  
+  redis:
+    image: redis:latest
+    container_name: chatapp-redis
+    ports:
+      - "6379:6379"
+
+volumes:
+  postgres_data:
