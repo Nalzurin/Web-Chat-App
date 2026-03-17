@@ -1,16 +1,37 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Identity;
 
 namespace back_end.Models
 {
-    public class User
+    // Domain User derives from IdentityUser so it can be used directly with ASP.NET Core Identity
+    public class User : IdentityUser<Guid>
     {
-        public Guid Id { get; set; }
+        // Keep a domain-friendly Username property that delegates to Identity's UserName
+        public string Username
+        {
+            get
+            {
+                return base.UserName ?? string.Empty;
+            }
+            set
+            {
+                base.UserName = value;
+            }
+        }
 
-        public required string Username { get; set; }
-
+        // Expose Email with validation attribute while delegating to Identity's Email
         [EmailAddress]
-        public required string Email { get; set; }
-        public required string PasswordHash { get; set; }
+        public new string Email
+        {
+            get
+            {
+                return base.Email ?? string.Empty;
+            }
+            set
+            {
+                base.Email = value;
+            }
+        }
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }

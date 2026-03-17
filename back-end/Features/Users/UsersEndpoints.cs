@@ -1,6 +1,3 @@
-using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Http;
-using back_end.Features.Users;
 
 namespace back_end.Features.Users;
 
@@ -16,8 +13,15 @@ public static class UsersEndpoints
 
         app.MapPost("/users", async (CreateUser.Command cmd, IUsersService usersService) =>
         {
-            var created = await usersService.CreateUserAsync(cmd);
-            return Results.Created($"/users/{created.Id}", created);
+            try
+            {
+                var created = await usersService.CreateUserAsync(cmd);
+                return Results.Created($"/users/{created.Id}", created);
+            }
+            catch (ArgumentException ex)
+            {
+                return Results.BadRequest(new { error = ex.Message });
+            }
         }).WithName("AddUser");
     }
 }

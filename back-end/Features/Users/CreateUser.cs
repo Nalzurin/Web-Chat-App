@@ -2,5 +2,6 @@ namespace back_end.Features.Users;
 
 public static class CreateUser
 {
-    public record Command(string Username, string PasswordHash, string Email);
+    // Password is provided in plain text and will be hashed by the service
+    public record Command(string Username, string Password, string Email);
 }

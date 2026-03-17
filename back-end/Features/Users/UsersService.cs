@@ -1,13 +1,10 @@
+using System;
 using System.Linq;
 using back_end.Models;
+using back_end.Features.Users.Dtos;
+using back_end.Features.Users.Interfaces;
 
 namespace back_end.Features.Users;
-
-public interface IUsersService
-{
-    Task<IEnumerable<UserDto>> GetUsersAsync();
-    Task<UserDto> CreateUserAsync(CreateUser.Command cmd);
-}
 
 public class UsersService : IUsersService
 {
@@ -26,17 +23,28 @@ public class UsersService : IUsersService
 
     public async Task<UserDto> CreateUserAsync(CreateUser.Command cmd)
     {
+        var users = await _repo.GetAllAsync();
+
+        if (users.Any(u => string.Equals(u.Username, cmd.Username, StringComparison.OrdinalIgnoreCase)))
+        {
+            throw new ArgumentException("Username already exists.");
+        }
+
+        if (users.Any(u => string.Equals(u.Email, cmd.Email, StringComparison.OrdinalIgnoreCase)))
+        {
+            throw new ArgumentException("Email already exists.");
+        }
+
         var user = new User
         {
             Username = cmd.Username,
             Email = cmd.Email,
-            PasswordHash = cmd.PasswordHash,
+            PasswordHash = string.Empty,
             CreatedAt = DateTime.UtcNow
         };
 
-        await _repo.AddAsync(user);
-        await _repo.SaveChangesAsync();
+        var created = await _repo.CreateAsync(user, cmd.Password);
 
-        return new UserDto(user.Id, user.Username, user.Email, user.CreatedAt);
+        return new UserDto(created.Id, created.Username, created.Email, created.CreatedAt);
     }
 }
