@@ -5,7 +5,6 @@ using System.Threading.Tasks;
 using Moq;
 using Xunit;
 using back_end.Features.Users;
-using back_end.Features.Users.Dtos;
 using back_end.Features.Users.Interfaces;
 using back_end.Models;
 
@@ -25,6 +24,41 @@ namespace back_end.Tests
             var cmd = new CreateUser.Command("alice", "Password123!", "alice@example.com");
 
             await Assert.ThrowsAsync<ArgumentException>(async () => await svc.CreateUserAsync(cmd));
+        }
+
+        [Fact]
+        public async Task AuthenticateAsync_WhenValid_ReturnsAuthResult()
+        {
+            var user = new User { Id = Guid.NewGuid(), Username = "charlie", Email = "charlie@example.com", CreatedAt = DateTime.UtcNow };
+
+            var repoMock = new Mock<IUserRepository>();
+            repoMock.Setup(r => r.GetAllAsync()).ReturnsAsync(new List<User>());
+            repoMock.Setup(r => r.AuthenticateAsync("charlie", "Password123!")).ReturnsAsync(user);
+
+            var svc = new UsersService(repoMock.Object);
+
+            var cmd = new Login.Command("charlie", "Password123!");
+
+            var result = await svc.AuthenticateAsync(cmd);
+
+            Assert.NotNull(result);
+            Assert.False(string.IsNullOrWhiteSpace(result.Token));
+            Assert.Equal("charlie", result.User.Username);
+            Assert.Equal("charlie@example.com", result.User.Email);
+            repoMock.Verify(r => r.AuthenticateAsync("charlie", "Password123!"), Times.Once);
+        }
+
+        [Fact]
+        public async Task AuthenticateAsync_WhenInvalid_ThrowsArgumentException()
+        {
+            var repoMock = new Mock<IUserRepository>();
+            repoMock.Setup(r => r.AuthenticateAsync(It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync((User?)null);
+
+            var svc = new UsersService(repoMock.Object);
+
+            var cmd = new Login.Command("noone", "badpass");
+
+            await Assert.ThrowsAsync<ArgumentException>(async () => await svc.AuthenticateAsync(cmd));
         }
 
         [Fact]

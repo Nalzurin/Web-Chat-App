@@ -10,4 +10,7 @@ public class ChatDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
         : base(options)
     {
     }
+
+    public DbSet<back_end.Models.KeyBundle>? KeyBundles { get; set; }
+    public DbSet<back_end.Models.OneTimePreKey>? OneTimePreKeys { get; set; }
 }

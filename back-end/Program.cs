@@ -6,6 +6,12 @@ using back_end.Features.Users.Interfaces;
 using back_end.Models;
 using Microsoft.AspNetCore.Identity;
 using back_end.Endpoints;
+using back_end.Extensions;
+using MediatR;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
+using Serilog;
 
 namespace back_end
 {
@@ -13,7 +19,15 @@ namespace back_end
     {
         public static void Main(string[] args)
         {
+            // Configure Serilog early so startup logs are captured
+            Serilog.Log.Logger = new Serilog.LoggerConfiguration()
+                .Enrich.FromLogContext()
+                .WriteTo.Console()
+                .WriteTo.File("logs/log-.txt", rollingInterval: Serilog.RollingInterval.Day)
+                .CreateLogger();
+
             var builder = WebApplication.CreateBuilder(args);
+            builder.Host.UseSerilog();
 
             // Add services to the container.
 
@@ -25,12 +39,17 @@ namespace back_end
             // Infrastructure and business/service registrations
             builder.Services.AddScoped<IUserRepository, Infrastructure.Users.UserRepository>();
             builder.Services.AddScoped<IUsersService, Features.Users.UsersService>();
+            builder.Services.AddScoped<back_end.Features.Keys.Interfaces.IKeyRepository, back_end.Infrastructure.Keys.KeyRepository>();
 
-            // Identity
-            builder.Services.AddIdentity<User, IdentityRole<Guid>>()
-                .AddEntityFrameworkStores<ChatDbContext>()
-                .AddDefaultTokenProviders();
+            // Identity and JWT registration (split for clarity)
+            builder.Services.AddIdentityServices();
+            builder.Services.AddJwtAuthentication(builder.Configuration);
 
+            // MediatR for CQRS/mediator pattern
+            builder.Services.AddMediatR(typeof(Program).Assembly);
+
+            // Register MediatR pipeline behaviors (logging)
+            builder.Services.AddTransient(typeof(MediatR.IPipelineBehavior<,>), typeof(back_end.Infrastructure.Logging.LoggingBehavior<,>));
             builder.Services.AddAuthorization();
 
             var app = builder.Build();
@@ -44,10 +63,10 @@ namespace back_end
 
             app.UseHttpsRedirection();
 
-            app.UseAuthentication();
-            app.UseAuthorization();
+            app.UseAuth();
 
-            // Map vertical-slice feature endpoints
+            // Map hubs and vertical-slice feature endpoints
+            app.MapHub<back_end.Hubs.ChatHub>("/hubs/chat");
             app.MapEndpoints();
 
             app.Run();
