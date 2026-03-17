@@ -47,7 +47,9 @@ public class UserRepository : IUserRepository
         if (!result.Succeeded)
         {
             var errors = string.Join("; ", result.Errors.Select(e => e.Description));
-            throw new InvalidOperationException(errors);
+            // Throw ArgumentException so higher layers (endpoints) can return a 400 with the
+            // Identity errors (for example password validation messages) in the response body.
+            throw new ArgumentException(errors);
         }
 
         return new User

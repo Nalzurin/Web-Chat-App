@@ -1,4 +1,6 @@
 
+using back_end.Features.Users.Interfaces;
+
 namespace back_end.Features.Users;
 
 public static class UsersEndpoints
