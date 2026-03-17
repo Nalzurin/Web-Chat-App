@@ -1,7 +1,4 @@
-name: chatapp
-
 services:
-
   postgres:
     image: postgres:latest
     container_name: chatapp-postgres
@@ -32,6 +29,11 @@ services:
     container_name: chatapp-redis
     ports:
       - "6379:6379"
+  back-end:
+    image: ${DOCKER_REGISTRY-}backend
+    build:
+      context: .
+      dockerfile: back-end/Dockerfile
 
 volumes:
   postgres_data:
