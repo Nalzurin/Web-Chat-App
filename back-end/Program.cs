@@ -3,14 +3,9 @@ using Microsoft.EntityFrameworkCore;
 using back_end.Data;
 using back_end.Features.Users;
 using back_end.Features.Users.Interfaces;
-using back_end.Models;
-using Microsoft.AspNetCore.Identity;
 using back_end.Endpoints;
 using back_end.Extensions;
 using MediatR;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.IdentityModel.Tokens;
-using System.Text;
 using Serilog;
 
 namespace back_end
@@ -35,11 +30,22 @@ namespace back_end
                 options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
             // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
             builder.Services.AddOpenApi();
+            builder.Services.AddSignalR();
+
+            // Allow the frontend dev server to call the API (adjust origins as needed)
+            builder.Services.AddCors(options =>
+            {
+                options.AddPolicy("DevCors", policy =>
+                    policy.WithOrigins("http://localhost:15912")
+                          .AllowAnyHeader()
+                          .AllowAnyMethod()
+                          .AllowCredentials());
+            });
 
             // Infrastructure and business/service registrations
             builder.Services.AddScoped<IUserRepository, Infrastructure.Users.UserRepository>();
-            builder.Services.AddScoped<IUsersService, Features.Users.UsersService>();
-            builder.Services.AddScoped<back_end.Features.Keys.Interfaces.IKeyRepository, back_end.Infrastructure.Keys.KeyRepository>();
+            builder.Services.AddScoped<IUsersService, UsersService>();
+            builder.Services.AddScoped<Features.Keys.Interfaces.IKeyRepository, Infrastructure.Keys.KeyRepository>();
 
             // Identity and JWT registration (split for clarity)
             builder.Services.AddIdentityServices();
@@ -49,7 +55,7 @@ namespace back_end
             builder.Services.AddMediatR(typeof(Program).Assembly);
 
             // Register MediatR pipeline behaviors (logging)
-            builder.Services.AddTransient(typeof(MediatR.IPipelineBehavior<,>), typeof(back_end.Infrastructure.Logging.LoggingBehavior<,>));
+            builder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(Infrastructure.Logging.LoggingBehavior<,>));
             builder.Services.AddAuthorization();
 
             var app = builder.Build();
@@ -63,10 +69,16 @@ namespace back_end
 
             app.UseHttpsRedirection();
 
+            // Enable CORS for development
+            if (app.Environment.IsDevelopment())
+            {
+                app.UseCors("DevCors");
+            }
+
             app.UseAuth();
 
             // Map hubs and vertical-slice feature endpoints
-            app.MapHub<back_end.Hubs.ChatHub>("/hubs/chat");
+            app.MapHub<Hubs.ChatHub>("/hubs/chat");
             app.MapEndpoints();
 
             app.Run();

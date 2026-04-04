@@ -18,9 +18,20 @@ public class UsersService : IUsersService
     private readonly IConfiguration _configuration;
     private readonly Microsoft.Extensions.Logging.ILogger<UsersService> _logger;
 
-    public UsersService(IUserRepository repo, IConfiguration? configuration = null)
+    public UsersService(IUserRepository repo, Microsoft.Extensions.Logging.ILogger<UsersService>? logger = null, IConfiguration? configuration = null)
     {
         _repo = repo;
+        if (logger is null)
+        {
+            // tests may instantiate without logger; provide a no-op logger
+            var factory = Microsoft.Extensions.Logging.Abstractions.NullLoggerFactory.Instance;
+            _logger = factory.CreateLogger<UsersService>();
+
+        }
+        else
+        {
+            _logger = logger;
+        }
         if (configuration is null)
         {
             // tests may instantiate without configuration; provide sane defaults

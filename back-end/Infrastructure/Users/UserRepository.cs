@@ -12,9 +12,9 @@ namespace back_end.Infrastructure.Users;
 public class UserRepository : IUserRepository
 {
     private readonly UserManager<User> _userManager;
-    private readonly Microsoft.Extensions.Logging.ILogger<UserRepository> _logger;
+    private readonly ILogger<UserRepository> _logger;
 
-    public UserRepository(UserManager<User> userManager, Microsoft.Extensions.Logging.ILogger<UserRepository>? logger = null)
+    public UserRepository(UserManager<User> userManager, ILogger<UserRepository>? logger = null)
     {
         _userManager = userManager;
         _logger = logger ?? Microsoft.Extensions.Logging.Abstractions.NullLogger<UserRepository>.Instance;

@@ -12,8 +12,9 @@ public static class KeysEndpoints
             var userIdClaim = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
                 ?? user.FindFirst(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub)?.Value;
             if (!Guid.TryParse(userIdClaim, out var userId))
+            {
                 return Results.Unauthorized();
-
+            }
             await repo.UploadKeyBundleAsync(userId, dto);
             return Results.Ok();
         }).RequireAuthorization();
@@ -22,7 +23,9 @@ public static class KeysEndpoints
         {
             var bundle = await repo.GetAndConsumeOneTimePreKeyAsync(userId);
             if (bundle == null)
+            {
                 return Results.NotFound();
+            }
             return Results.Ok(bundle);
         }).RequireAuthorization();
 
