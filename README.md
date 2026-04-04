@@ -26,16 +26,6 @@ The application supports:
 
 This design ensures that user conversations remain confidential, even from the server itself.
 
-Implemented features
---------------------
-- User registration and login using ASP.NET Core Identity
-- JWT authentication (tokens issued at login and used for SignalR connections)
-- Minimal MediatR-based request/handler structure for feature commands/queries
-- SignalR `ChatHub` that relays encrypted messages and public keys between authenticated users
-- Pre-key management endpoints and persistence (upload device bundles, fetch-and-consume one-time prekeys)
-- Key repository and unit tests for key-handling logic
-- Basic Serilog structured logging and a MediatR logging pipeline behavior
-
 Tech stack
 ----------
 - Backend: .NET 10 (ASP.NET Core)
@@ -44,7 +34,33 @@ Tech stack
 - CQRS/Mediator: MediatR
 - Data storage: Entity Framework Core (Postgres for production; InMemory used in tests)
 - Logging: Serilog (console + file sinks)
-- Frontend (planned): React + TypeScript + shadcn/ui Component library + Zustand state management + TanStack Table and Query + React Hook Form + Zod + Recharts + SignalR Client 
+- Frontend: React + TypeScript + shadcn/ui Component library + Zustand state management + TanStack Table and Query + React Hook Form + Zod + Recharts + SignalR Client 
+
+
+Project Status
+--------------
+This project is actively under development.
+
+Currently implemented:
+- Authentication and JWT-based access control
+- SignalR-based real-time messaging infrastructure
+- Key exchange endpoints and persistence
+- Core backend architecture (CQRS, logging, data access)
+
+In progress:
+- End-to-end message persistence and delivery guarantees
+- Full Signal Protocol integration on the frontend (Double Ratchet)
+- React frontend for user interaction and key management
+
+Planned:
+-------------------
+- Persist delivered and undelivered messages (Message entity + repository) and deliver-on-connect
+- Integrate a real Signal Protocol client implementation in the frontend for proper Double Ratchet semantics
+- Add refresh tokens / session management for long-lived clients
+- Add retention, archival and storage quotas (cleanup job)
+- Harden security (validate prekey signatures, rate-limiting, size limits, KMS for secrets)
+- Add a small React+TypeScript demo client showing key upload, key fetch, E2EE session setup and chatting
+
 
 Repository layout & containers
 ----------------------------
@@ -90,6 +106,108 @@ Prerequisites:
 
    dotnet test
 
+Database Schema
+---------------
+
+The application uses PostgreSQL with Entity Framework Core. ASP.NET Core Identity provides the base user and authentication tables.
+
+### Identity Tables (provided by ASP.NET Core Identity)
+
+- `AspNetUsers`
+- `AspNetRoles`
+- `AspNetUserRoles`
+- `AspNetUserClaims`
+- `AspNetUserLogins`
+- `AspNetUserTokens`
+
+These handle user accounts, roles, and authentication.
+
+---
+
+### Core Application Tables
+
+#### Users (extension of Identity)
+- Id (PK)
+- UserName
+- Email
+- CreatedAt
+
+---
+
+#### Conversations
+Represents a one-to-one chat between two users.
+
+- Id (PK)
+- User1Id (FK → Users)
+- User2Id (FK → Users)
+- CreatedAt
+
+---
+
+#### Messages
+Stores encrypted messages exchanged between users.
+
+- Id (PK, monotonic)
+- ConversationId (FK → Conversations)
+- SenderId (FK → Users)
+- CipherText (encrypted payload)
+- CreatedAt (server timestamp)
+- Status (Sent, Delivered, Read)
+
+---
+
+#### UserDevices
+Supports multi-device architecture required by Signal Protocol.
+
+- Id (PK)
+- UserId (FK → Users)
+- DeviceId (unique per user)
+- CreatedAt
+
+---
+
+#### KeyBundles
+Stores public key material required for initiating encrypted sessions.
+
+- Id (PK)
+- UserId (FK → Users)
+- DeviceId (FK → UserDevices)
+- IdentityPublicKey
+- SignedPreKey
+- SignedPreKeySignature
+- OneTimePreKeys (collection or separate table)
+- CreatedAt
+
+---
+
+#### OneTimePreKeys
+Used for X3DH key exchange (consumed on use).
+
+- Id (PK)
+- KeyBundleId (FK → KeyBundles)
+- PublicKey
+- IsUsed (bool)
+
+---
+
+#### Friendships (optional / planned)
+Represents user relationships.
+
+- Id (PK)
+- RequesterId (FK → Users)
+- AddresseeId (FK → Users)
+- Status (Pending, Accepted, Blocked)
+- CreatedAt
+
+---
+
+### Notes
+
+- All message content is stored encrypted; the server never has access to plaintext.
+- Message ordering is ensured via a monotonic Id and server-side timestamps.
+- Multi-device support is handled via device-specific key bundles.
+- One-time prekeys are consumed upon session establishment to maintain forward secrecy.
+
 How the demo client should work (frontend responsibilities)
 -------------------------------------------------------
 - Implement full Signal Protocol (recommended libs: libsignal-protocol-js for web) or a Web Crypto ECDH+AES-GCM prototype for the demo.
@@ -98,14 +216,6 @@ How the demo client should work (frontend responsibilities)
 - Connect to SignalR hub using the JWT: `new signalR.HubConnectionBuilder().withUrl('/hubs/chat?access_token='+jwt)`
 - Use `SendDirectMessage(recipientUserId, encryptedMessage)` to send ciphertext; server will persist and/or relay it.
 
-To-do (high level)
--------------------
-- Persist delivered and undelivered messages (Message entity + repository) and deliver-on-connect
-- Integrate a real Signal Protocol client implementation in the frontend for proper Double Ratchet semantics
-- Add refresh tokens / session management for long-lived clients
-- Add retention, archival and storage quotas (cleanup job)
-- Harden security (validate prekey signatures, rate-limiting, size limits, KMS for secrets)
-- Add a small React+TypeScript demo client showing key upload, key fetch, E2EE session setup and chatting
 
 Notes
 -----
