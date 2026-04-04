@@ -9,10 +9,9 @@
     <DockerServiceName>back-end</DockerServiceName>
   </PropertyGroup>
   <ItemGroup>
-    <None Include="back-end.Tests\back-end.Tests.csproj" />
-    <None Include="back-end.Tests\UserRepositoryTests.cs" />
-    <None Include="back-end.Tests\UsersEndpointsIntegrationTests.cs" />
-    <None Include="back-end.Tests\UsersServiceTests.cs" />
+    <None Remove="back-end.Tests\**" />
+  </ItemGroup>
+  <ItemGroup>
     <None Include="docker-compose.override.yml">
       <DependentUpon>docker-compose.yml</DependentUpon>
     </None>
