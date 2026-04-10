@@ -13,4 +13,8 @@ public class ChatDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
 
     public DbSet<back_end.Models.KeyBundle>? KeyBundles { get; set; }
     public DbSet<back_end.Models.OneTimePreKey>? OneTimePreKeys { get; set; }
+    public DbSet<back_end.Models.Conversation>? Conversations { get; set; }
+    public DbSet<back_end.Models.Message>? Messages { get; set; }
+    public DbSet<back_end.Models.UserDevice>? UserDevices { get; set; }
+    public DbSet<back_end.Models.Friendship>? Friendships { get; set; }
 }
