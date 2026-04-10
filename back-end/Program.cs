@@ -5,6 +5,7 @@ using back_end.Features.Users;
 using back_end.Features.Users.Interfaces;
 using back_end.Endpoints;
 using back_end.Extensions;
+using back_end.Features.Friendships;
 using MediatR;
 using Serilog;
 
@@ -46,6 +47,8 @@ namespace back_end
             builder.Services.AddScoped<IUserRepository, Infrastructure.Users.UserRepository>();
             builder.Services.AddScoped<IUsersService, UsersService>();
             builder.Services.AddScoped<Features.Keys.Interfaces.IKeyRepository, Infrastructure.Keys.KeyRepository>();
+            builder.Services.AddScoped<Features.Friendships.Interfaces.IFriendshipRepository, Infrastructure.Friendships.FriendshipRepository>();
+            builder.Services.AddScoped<Features.Friendships.IFriendshipService, Features.Friendships.FriendshipService>();
 
             // Identity and JWT registration (split for clarity)
             builder.Services.AddIdentityServices();
@@ -80,6 +83,7 @@ namespace back_end
             // Map hubs and vertical-slice feature endpoints
             app.MapHub<Hubs.ChatHub>("/hubs/chat");
             app.MapEndpoints();
+            app.MapFriendships();
 
             app.Run();
         }
